@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -6,40 +6,50 @@
     <link rel="stylesheet" href="static/style.css">
   </head>
   <body>
-    <div id="floating-panel">
-      <div class="group">
-          <div class="subject">Radius <span id=radiusNum>21</span></div>
-          <button onclick="changeRadius(true)">Up</button>
-          <button onclick="changeRadius(false)">Down</button>
+      <div id="floating-panel">
+          <div class="group">
+              <div class="subject">Radius <span id=radiusNum>21</span></div>
+              <button onclick="changeRadius(true)">Up</button>
+              <button onclick="changeRadius(false)">Down</button>
+          </div>
+          <div class="group">
+              <div class="subject">Intensity <span id=intensityNum>200</span></div>
+              <button onclick="changeIntensity(true)">Up</button>
+              <button onclick="changeIntensity(false)">Down</button>
+          </div>
+          <div class="group">
+              <div class="subject">Opacity <span id=opacityNum>.6</span></div>
+              <button onclick="changeOpacity(true)">Up</button>
+              <button onclick="changeOpacity(false)">Down</button>
+          </div>
+          <div class="group">
+              <div class="subject">Region </div>
+              <button onclick="selectRegion()">Select</button>
+              <button onclick="clearRegion()">Clear</button>
+          </div>
+          <div id="info">
+              <H>Information? </H>
+              <p>Select</p>
+          </div>
       </div>
-      <div class="group">
-          <div class="subject">Intensity <span id=intensityNum>200</span></div>
-          <button onclick="changeIntensity(true)">Up</button>
-          <button onclick="changeIntensity(false)">Down</button>
-      </div>
-      <div class="group">
-          <div class="subject">Opacity <span id=opacityNum>.6</span></div>
-          <button onclick="changeOpacity(true)">Up</button>
-          <button onclick="changeOpacity(false)">Down</button>
-      </div>
-    </div>
     <div id="map"></div>
     
     <script>
       const maxI = 200, rad = 21, opac = .6;
-      var map, heatmap;
+      var numClicks = 0, west1 = 0, south1 = 0;
+      var map, heatmap, rectangle = 0, infoWindow = 0, listener = 0;
 
       function initMap() {
         map = new google.maps.Map(document.getElementById('map'), {
-          zoom: 2,
-          center: {lat: 37.775, lng: -122.434},
+          zoom: 6,
+            center: { lat: 52.158, lng: -105.670 },
           mapTypeId: 'roadmap'
         });
 
         fetch('static/location.json').then(function(response) {
           response.json().then(function(result) {
-            let locations = result.locations.map((val) => {
-              return new google.maps.LatLng(val.latitudeE7 * (10 ** -7), val.longitudeE7 * (10 ** -7));
+            let locations = result.map((val) => {
+                return new google.maps.LatLng(val.clmDesc, val.txtLongitude);
             })
 
             heatmap = new google.maps.visualization.HeatmapLayer({
@@ -63,6 +73,53 @@
         document.getElementById("radiusNum").innerText = newValue;
       };
 
+        function clearRegion() {
+            if (rectangle != 0) {
+                rectangle.setMap(null);
+                infoWindow.open(null);
+                numClicks = 0;
+                google.maps.event.removeListener(listener);
+            }
+        }
+      // Function to select a region of items to display
+        function selectRegion() {
+            listener = map.addListener('click', function (mapsMouseEvent) {
+                if (numClicks < 1) {
+                    numClicks += 1;
+                    west1 = mapsMouseEvent.latLng.lng();
+                    south1 = mapsMouseEvent.latLng.lat();
+                    console.log("south " + south1);
+                    console.log("north " + west1);
+                } else {
+                    if (rectangle != 0) {
+                        rectangle.setMap(null);
+                        infoWindow.open(null)
+                    }
+                    var east1 = mapsMouseEvent.latLng.lng();
+                    var north1 = mapsMouseEvent.latLng.lat();
+                    console.log("west "+ east1);
+                    console.log("east " + north1);
+                    rectangle = new google.maps.Rectangle({
+                        strokeOpacity: 0.8,
+                        strokeColor: "#FF0000",
+                        strokeWeight: 2,
+                        fillColor: "#FF0000",
+                        fillOpacity: 0.35,
+                        map,
+                        bounds: {
+                            north: north1,
+                            south: south1,
+                            east: east1,
+                            west: west1
+                        }
+                    });
+                    infoWindow = new google.maps.InfoWindow({ position: { lat: south1, lng: west1 }});
+                    infoWindow.setContent(mapsMouseEvent.latLng.toString());
+                    infoWindow.open(map);
+                    numClicks = 0;
+                }
+            })
+      }
       // Function to change the opacity of the heatmap
       function changeOpacity(bool) {
         const step = .2, min = 0, max = 1;
