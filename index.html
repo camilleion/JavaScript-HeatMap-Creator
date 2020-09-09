@@ -27,17 +27,18 @@
               <button onclick="selectRegion()">Select</button>
               <button onclick="clearRegion()">Clear</button>
           </div>
-          <div id="info">
-              <H>Information? </H>
-              <p>Select</p>
+          <div class="group">
+              <div class="subject">Mode </div>
+              <button onclick="setMode('claim')">Claims </button>
+              <button onclick="setMode('cost')">Cost </button>
           </div>
       </div>
     <div id="map"></div>
     
     <script>
       const maxI = 200, rad = 21, opac = .6;
-      var numClicks = 0, west1 = 0, south1 = 0;
-      var map, heatmap, rectangle = 0, infoWindow = 0, listener = 0;
+      var numClicks = 0, west1 = 0, south1 = 0, east1 = 0, north1 = 0, type = "cost";
+      var map, heatmap, rectangle = 0, infoWindow = 0, listener = 0, data1;
 
       function initMap() {
         map = new google.maps.Map(document.getElementById('map'), {
@@ -51,7 +52,9 @@
             let locations = result.map((val) => {
                 return new google.maps.LatLng(val.clmDesc, val.txtLongitude);
             })
-
+            data1 = result.map((val) => {
+                return { lat: val.clmDesc, lng: val.txtLongitude, cost: val.txtRemitted, claim: val.clmPolicyNumber, dol: val.txtDofL, lossCode: val.txtLossCode, covCode: val.txtCovCode };
+            })
             heatmap = new google.maps.visualization.HeatmapLayer({
               data: locations,
               map: map,
@@ -72,13 +75,14 @@
         heatmap.set('radius', newValue);
         document.getElementById("radiusNum").innerText = newValue;
       };
-
+        // delete current rectangle and remove listener
         function clearRegion() {
             if (rectangle != 0) {
                 rectangle.setMap(null);
                 infoWindow.open(null);
+                rectangle = 0;
                 numClicks = 0;
-                google.maps.event.removeListener(listener);
+                google.maps.event.clearListeners(map, 'click');
             }
         }
       // Function to select a region of items to display
@@ -89,16 +93,16 @@
                     west1 = mapsMouseEvent.latLng.lng();
                     south1 = mapsMouseEvent.latLng.lat();
                     console.log("south " + south1);
-                    console.log("north " + west1);
+                    console.log("west " + west1);
                 } else {
                     if (rectangle != 0) {
                         rectangle.setMap(null);
                         infoWindow.open(null)
                     }
-                    var east1 = mapsMouseEvent.latLng.lng();
-                    var north1 = mapsMouseEvent.latLng.lat();
-                    console.log("west "+ east1);
-                    console.log("east " + north1);
+                    east1 = mapsMouseEvent.latLng.lng();
+                    north1 = mapsMouseEvent.latLng.lat();
+                    console.log("east "+ east1);
+                    console.log("north " + north1);
                     rectangle = new google.maps.Rectangle({
                         strokeOpacity: 0.8,
                         strokeColor: "#FF0000",
@@ -114,12 +118,51 @@
                         }
                     });
                     infoWindow = new google.maps.InfoWindow({ position: { lat: south1, lng: west1 }});
-                    infoWindow.setContent(mapsMouseEvent.latLng.toString());
+                    infoWindow.setContent(contains(north1, south1, east1, west1));
                     infoWindow.open(map);
                     numClicks = 0;
                 }
             })
-      }
+        }
+
+        // sets the type of data shown in the information box
+        // re-sets the data shown
+        function setMode(mode) {
+            type = mode;
+            if (rectangle != 0) {
+                infoWindow.setContent(contains(north1, south1, east1, west1));
+            }
+        }
+
+        // Determines what data is in the rectangular bounds
+        // returns that data as a string
+        function contains(n, s, e, w) {
+            var returns = 0;
+            var numElements = 0;
+            var singleEntry = 0;
+            if (type == "claim") {
+                returns = "";
+            }
+            data1.forEach(function (item) {
+                if (item.lat < s && item.lat > n && item.lng < e && item.lng > w) {
+                    numElements++;
+                    singleEntry = "Claim: " + item.claim + "Remittance: " + item.cost + "DoL: " + item.dol + "Loss Code: " + item.lossCode + "Coverage Code: " + item.covCode;
+                    if (type == "claim") {
+                        returns += item.claim + ", ";
+                    } else {
+                        returns += parseFloat(item.cost);
+                    }
+                }
+            })
+            if (numElements == 1) {
+                return singleEntry;
+            }
+            else if (type == "claim") {
+                return returns;
+            } else {
+                return "cost: " + round(returns,2).toString();
+            }
+        }
       // Function to change the opacity of the heatmap
       function changeOpacity(bool) {
         const step = .2, min = 0, max = 1;
@@ -157,7 +200,7 @@
       }
 
     </script>
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY_HERE&libraries=visualization&callback=initMap">
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY_HERE&libraries=visualization&callback=initMap">
     </script>
   </body>
 </html>
