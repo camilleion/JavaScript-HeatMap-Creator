@@ -29,8 +29,10 @@
           </div>
           <div class="group">
               <div class="subject">Mode </div>
-              <button onclick="setMode('claim')">Claims </button>
-              <button onclick="setMode('cost')">Cost </button>
+              <button onclick="setMode('claim')">Claim ID </button>
+              <button onclick="setMode('cost')">Loss </button>
+              <button onclick="setMode('cost')">Premium </button>
+              <button onclick="setMode('cost')">Loss Ratio </button>
           </div>
       </div>
     <div id="map"></div>
@@ -160,7 +162,7 @@
             else if (type == "claim") {
                 return returns;
             } else {
-                return "cost: " + round(returns,2).toString();
+                return "loss: " + round(returns, 0).toLocaleString();//toString();
             }
         }
       // Function to change the opacity of the heatmap
@@ -200,7 +202,7 @@
       }
 
     </script>
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY_HERE&libraries=visualization&callback=initMap">
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAI4OyH-EhHZEUuYwuuynUU5Xt9YUqtLSs&libraries=visualization&callback=initMap">
     </script>
   </body>
 </html>
